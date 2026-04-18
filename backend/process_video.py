@@ -1,23 +1,22 @@
-def process_video(video_path):
-    import cv2
-    import csv
-    import math
-    import os
-    import json
-    from datetime import datetime
-    from ultralytics import YOLO
-    from deep_sort_realtime.deepsort_tracker import DeepSort
+import cv2
+import csv
+import math
+import os
+import json
+from datetime import datetime
+from ultralytics import YOLO
+from deep_sort_realtime.deepsort_tracker import DeepSort
 
-    # ================= MODEL INIT (INSIDE FUNCTION) =================
-    model = YOLO("yolov8n.pt")
-    tracker = DeepSort(max_age=30)
 
-# ======================================================
-# MAIN FUNCTION
-# ======================================================
+# Load models ONCE (important for performance)
+MODEL = YOLO("yolov8n.pt")
+TRACKER = DeepSort(max_age=30)
+
+
 def process_video(video_path):
-    # ================= CONFIG (OPTIMIZED) =================
-    FRAME_SKIP = 4                      # faster than 3
+
+    # ================= CONFIG =================
+    FRAME_SKIP = 4
     RESIZE_WIDTH, RESIZE_HEIGHT = 512, 288
     SPEED_THRESHOLD = 30
 
@@ -25,7 +24,7 @@ def process_video(video_path):
     QUEUE_X2, QUEUE_Y2 = 500, 450
     STOP_LINE_Y = 300
 
-    # ================= HISTORY =================
+    # ================= RUN SETUP =================
     run_id = datetime.now().strftime("run_%Y%m%d_%H%M%S")
     run_dir = os.path.join("history", run_id)
     os.makedirs(run_dir, exist_ok=True)
@@ -45,7 +44,7 @@ def process_video(video_path):
     prev_pos = {}
     prev_center = {}
 
-    # ================= CSV SETUP =================
+    # ================= CSV =================
     with open(output_csv, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow([
@@ -56,7 +55,6 @@ def process_video(video_path):
             "total_vehicles"
         ])
 
-        # ================= MAIN LOOP =================
         while True:
             ret, frame = cap.read()
             if not ret:
@@ -70,10 +68,10 @@ def process_video(video_path):
 
             frame = cv2.resize(frame, (RESIZE_WIDTH, RESIZE_HEIGHT))
 
+            # ================= YOLO =================
             results = MODEL(frame, verbose=False)
             detections = []
 
-            # -------- YOLO DETECTIONS --------
             for box in results[0].boxes:
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
                 cls = int(box.cls[0])
@@ -83,7 +81,9 @@ def process_video(video_path):
                 if name in ["car", "bus", "truck", "motorcycle"]:
                     detections.append(([x1, y1, x2 - x1, y2 - y1], conf, name))
 
+            # ================= TRACKING =================
             tracks = TRACKER.update_tracks(detections, frame=frame)
+
             queue_count = 0
 
             for t in tracks:
@@ -96,30 +96,29 @@ def process_video(video_path):
 
                 seen.add(tid)
 
-                # -------- RED-LIGHT VIOLATION --------
+                # -------- RED LIGHT --------
                 py = prev_pos.get(tid)
                 prev_pos[tid] = cy
                 if py is not None and py < STOP_LINE_Y <= cy:
                     violated.add(tid)
 
-                # -------- RASH DRIVING --------
+                # -------- SPEED --------
                 pc = prev_center.get(tid)
                 prev_center[tid] = (cx, cy)
                 if pc and math.dist(pc, (cx, cy)) > SPEED_THRESHOLD:
                     rash.add(tid)
 
-                # -------- QUEUE COUNT --------
+                # -------- QUEUE --------
                 if QUEUE_X1 <= cx <= QUEUE_X2 and QUEUE_Y1 <= cy <= QUEUE_Y2:
                     queue_count += 1
 
-                # -------- DRAW (LIVE PREVIEW) --------
+                # -------- DRAW --------
                 cv2.rectangle(frame, (l, t_), (l + w, t_ + h), (0, 255, 0), 2)
 
-            # Save live preview frame
+            # Save preview
             if processed_frame_id % 10 == 0:
                 cv2.imwrite(live_frame_path, frame)
 
-            # -------- CSV LOG --------
             writer.writerow([
                 processed_frame_id,
                 queue_count,

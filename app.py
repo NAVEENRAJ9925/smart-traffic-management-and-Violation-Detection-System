@@ -80,10 +80,10 @@ body { background:#020617; }
 # ==============================
 st.markdown("""
 <div class="section">
-<h1>🚦 Urban Traffic Intelligence Console</h1>
+<h1>🚦 Traffic Intelligence </h1>
 <p style="color:#94a3b8;">
-AI-Powered Traffic Queue & Violation Detection System<br>
-NH-44 × RTC Junction · Kurnool · Smart City Analytics
+AI powered smart traffic management and Violation Detection System<br>
+Done by Kanishka VJ
 </p>
 </div>
 """, unsafe_allow_html=True)
@@ -203,5 +203,5 @@ st.markdown('</div>', unsafe_allow_html=True)
 # FOOTER
 # ==============================
 st.caption(
-    f"Urban Traffic Intelligence System | Generated {datetime.now().strftime('%d %b %Y · %I:%M %p')}"
+    f"AI powered smart traffic management and Violation Detection System| Generated {datetime.now().strftime('%d %b %Y · %I:%M %p')}"
 )
