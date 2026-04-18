@@ -28,7 +28,7 @@ if "metrics" not in st.session_state:
 # PAGE CONFIG
 # ==============================
 st.set_page_config(
-    page_title="Urban Traffic Intelligence – Home",
+    page_title="smart traffic management and Violation Detection System – Home",
     layout="wide"
 )
 
