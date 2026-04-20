@@ -5,3 +5,4 @@ matplotlib
 ultralytics
 deep-sort-realtime
 torch
+opencv-python-headless
